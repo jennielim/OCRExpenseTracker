@@ -7,10 +7,8 @@ from datetime import date
 
 FORMRECOGNIZER_ENDPOINT = "https://lgaptrent-expenses.cognitiveservices.azure.com/"
 FORMRECOGNIZER_KEY = "843b91bdc6c847da8d313487e1829130"
-# Initiate client with given endpoint and credential
 client = FormRecognizerClient(FORMRECOGNIZER_ENDPOINT, AzureKeyCredential(FORMRECOGNIZER_KEY))
 
-# loop through all receipts in image folder
 directory = 'images'
 properties = ['p1', 'p2']
 expenseTypes = ['repair', 'maintenance', 'other']
@@ -41,6 +39,7 @@ class ParseReceipt:
             return self.info
 
 class RootWindow:
+
     def __init__(self, window):
         self.window = window
         self.window.withdraw()
@@ -62,7 +61,7 @@ class PopupWindow():
     def __init__(self, window, info):
         self.info = info
         self.window = window
-        self.window.geometry("500x375")
+        self.window.geometry("-0+0")
         self.window.title('Receipt Information')
         receiptInformationRow = Frame(self.window)
         receiptInformationLabel = Label(receiptInformationRow,text="Receipt Information", width=40,font=("bold",25))
