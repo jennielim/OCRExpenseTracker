@@ -1,6 +1,8 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import FormRecognizerClient
 import os, subprocess, sys, shutil
+from tkinter import *
+from tkinter import messagebox
 from datetime import date
 
 FORMRECOGNIZER_ENDPOINT = "https://lgaptrent-expenses.cognitiveservices.azure.com/"
@@ -12,14 +14,16 @@ client = FormRecognizerClient(FORMRECOGNIZER_ENDPOINT, AzureKeyCredential(FORMRE
 directory = 'images'
 properties = ['p1', 'p2']
 expenseTypes = ['repair', 'maintenance', 'other']
- 
-for filename in os.listdir(directory):
-    if filename != '.DS_Store':
-        check = []
-        IMAGE_FILE = os.path.join(directory, filename)
-        if os.path.isfile(IMAGE_FILE):
-            info = {'TransactionDate' : '', 'MerchantName' : '', 'Total' : '', 'Property': '', 'ExpenseType': ''}
-            with open(IMAGE_FILE, 'rb') as f:
+
+class ParseReceipt:
+
+    def __init__(self, imageFile):
+        self.info = {'TransactionDate' : '', 'MerchantName' : '', 'Total' : '', 'Property': '', 'ExpenseType': '', 'ImageFile' : imageFile}
+        self.imageFile = imageFile
+
+    def parse(self):
+        if os.path.isfile(self.imageFile):
+            with open(self.imageFile, 'rb') as f:
                 data = f.read()
 
             # opening image to user
@@ -33,119 +37,153 @@ for filename in os.listdir(directory):
             for receipt in analyzed_result:
                 for name, field in receipt.fields.items():
                     if name in ["MerchantName", "Total", "TransactionDate"]:
-                        # updating info
-                        info[name] = str(field.value)
-                        # print("{}: {} has confidence {}".format(name, field.value, field.confidence))
-                        if field.confidence < .9:
-                            check.append(name)
+                        self.info[name] = str(field.value)
+            return self.info
 
-            # correcting mistakes
-            if info['MerchantName'] == '':
-                print()
-                print('merchant name not caught, please enter: ')
-                name = input()
-                info['MerchantName'] = name
-            if info['Total'] == '':
-                print()
-                print('total not caught, please enter: ')
-                total = input()
-                info['Total'] = total
-            if info['TransactionDate'] == '':
-                print()
-                print('transaction date not caught, please enter like 2022-12-27,: ')
-                date = input()
-                info['TransactionDate'] = date
+class RootWindow:
+    def __init__(self, window):
+        self.window = window
+        self.window.withdraw()
+        for filename in os.listdir(directory):
+            if filename != '.DS_Store':
+                IMAGE_FILE = os.path.join(directory, filename)
+                transaction = ParseReceipt(IMAGE_FILE)
+                info = transaction.parse()
+                if info:
+                    self.create(info)
+        self.window.destroy()
 
-            # let user select a property
-            print()
-            print('please select a property: ')
-            for i in range(len(properties)):
-                num = str(i + 1) + '.'
-                print(num, properties[i])
-            property = int(input())
-            info['Property'] = properties[property - 1]
-            print()
+    def create(self, info):
+        new_window = Toplevel(self.window)
+        entry_window = PopupWindow(new_window, info)
+        entry_window.b1.wait_variable(entry_window.bvar)
 
-            # let user select expense
-            print('please select an expense type: ')
-            for i in range(len(expenseTypes)):
-                print(i + 1, expenseTypes[i])
-            expense = int(input())
-            if expense == 3:
-                expense = input('please specify expense: ')
-                info['ExpenseType'] = expense
-            else:
-                info['ExpenseType'] = expenseTypes[expense - 1]
-            print()
+class PopupWindow():
+    def __init__(self, window, info):
+        self.info = info
+        self.window = window
+        self.window.geometry("500x375")
+        self.window.title('Receipt Information')
+        receiptInformationRow = Frame(self.window)
+        receiptInformationLabel = Label(receiptInformationRow,text="Receipt Information", width=40,font=("bold",25))
+        receiptInformationRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        receiptInformationLabel.pack()
 
-            print("Here is the retieved data:")
-            for n in info:
-                print(n + ':', info[n])
-            print()
-            if check:
-                print("warning - please double check the following")
-                for i in check:
-                    print(i)
+        transactionDateRow = Frame(self.window)
+        transactionDateLabel = Label(transactionDateRow,text="Transaction Date", width=20,font=("bold",15))
+        self.transactionDate = Entry(transactionDateRow)
+        self.transactionDate.insert(0, self.info['TransactionDate'])
+        transactionDateRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        transactionDateLabel.pack(side = LEFT)
+        self.transactionDate.pack(side = RIGHT, expand = YES, fill = X)
 
-            print()
-            print("please press any of the following letters to edit information, otherwise press enter: ")
-            print('d for date')
-            print('n for name')
-            print('t for total')
-            print('p for property')
-            print('e for expense type')
-            print()
-            review = 'not yet'
-            while review != '':
-                if review != 'not yet':
-                    review = input("please press any of the following letters to edit information, otherwise press enter: ")
-                else:
-                    review = input()
-                if review == '':
-                    print('writing to file')
-                elif review == 'd':
-                    info['TransactionDate'] = input('please update date: ')
-                elif review == 'n':
-                    info['MerchantName'] = input('please update name. if home depot press enter: ')
-                    if info['MerchantName'] == '':
-                        info['MerchantName'] = 'Home Depot'
-                elif review == 't':
-                    info['Total'] = input('please update total: ')
-                elif review == 'p':
-                    num = int(input('please update property: '))
-                    info['Property'] = properties[num - 1]
-                elif review == 'e':
-                    num = int(input('please update expense type: '))
-                    if num == 3:
-                        num = input('please specify expense: ')
-                        info['ExpenseType'] = num
-                    else:
-                        info['ExpenseType'] = expenseTypes[num - 1]
-                if review != '':
-                    print()
-                    print('updated info')
-                    for n in info:
-                        print(n + ':', info[n])
-                    print()
-            print('-----------------------------------------')
+        merchantNameRow = Frame(self.window)
+        merchantNameLabel = Label(merchantNameRow,text="Merchant Name",width=20,font=("bold",15))
+        stores = ['Home Depot', 'Menards', 'Walmart', 'Other']
+        self.merchantName = StringVar()
+        self.merchantName.set(self.info['MerchantName'])
+        droplist = OptionMenu(merchantNameRow, self.merchantName, *stores)
+        droplist.config(width=15)
+        merchantNameRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        merchantNameLabel.pack(side = LEFT)
+        droplist.pack(side = RIGHT, expand = YES, fill = X)
 
-            # updating books
-            file = './properties/' + info['Property'] + '.csv'
-            with open(file, 'a') as f:
-                s = info['TransactionDate'] + ',' + info['MerchantName'] + ',' + info['Total'] + ',' + info['ExpenseType'] + '\n'
-                f.write(s)
+        otherMerchantRow = Frame(self.window)
+        otherMerchantLabel = Label(otherMerchantRow,text="Other Merchant", width=20,font=("bold",15))
+        self.otherMerchant = Entry(otherMerchantRow)
+        otherMerchantRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        otherMerchantLabel.pack(side = LEFT)
+        self.otherMerchant.pack(side = RIGHT, expand = YES, fill = X)
 
-            # moving image
-            today = str(date.today())
-            src_folder = r"./images/"
-            dst_folder = r"./prev/"
-            file_name = IMAGE_FILE.split('/')[-1]
+        totalRow = Frame(self.window)
+        totalLabel = Label(totalRow,text="Total", width=20,font=("bold",15))
+        self.total = Entry(totalRow)
+        self.total.insert(0, self.info['Total'])
+        totalRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        totalLabel.pack(side = LEFT)
+        self.total.pack(side = RIGHT, expand = YES, fill = X)
 
-            # checks if folder exists
-            if not os.path.exists(dst_folder + today):
-                os.mkdir(dst_folder + today)
+        expenseTypeRow = Frame(self.window)
+        expenseTypeLabel = Label(expenseTypeRow,text="Expense Type", width=20,font=("bold",15))
+        self.expenseType = IntVar()
+        r1 = Radiobutton(self.window,text="Repair", variable = self.expenseType, value=1)
+        r2 = Radiobutton(self.window,text="Maintenance", variable = self.expenseType, value=2)
+        r3 = Radiobutton(self.window,text="Other", variable = self.expenseType, value=3)
+        expenseTypeLabel.pack(side = LEFT)
+        r1.pack(in_=expenseTypeRow, side="left")
+        r2.pack(in_=expenseTypeRow, side="left")
+        r3.pack(in_=expenseTypeRow, side="left")
+        expenseTypeRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
 
-            # check if file exist in destination
-            if not os.path.exists(dst_folder + today + '/' + file_name):
-                shutil.move(src_folder + file_name, dst_folder + today + '/' + file_name)
+        otherLabelRow = Frame(self.window)
+        otherLabel = Label(otherLabelRow,text="Other Expense Type", width=20,font=("bold",15))
+        self.other = Entry(otherLabelRow)
+        otherLabelRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        otherLabel.pack(side = LEFT)
+        self.other.pack(side = RIGHT, expand = YES, fill = X)
+
+        propertyRow = Frame(self.window)
+        propertyLabel = Label(propertyRow,text="Property",width=20,font=("bold",15))
+        properties = ['p1', 'p2']
+        self.property = StringVar()
+        droplist = OptionMenu(propertyRow, self.property, *properties)
+        droplist.config(width=15)
+        self.property.set('Select')
+        propertyRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        propertyLabel.pack(side = LEFT)
+        droplist.pack(side = RIGHT, expand = YES, fill = X)
+
+        submitRow = Frame(self.window)
+        self.bvar = IntVar()
+        self.b1 = Button(submitRow, text='Submit', width=20, command=self.clicked)
+        submitRow.pack(side = TOP, fill = X, padx = 5, pady = 5)
+        self.b1.pack()
+
+    def clicked(self):
+        self.info['TransactionDate'] = self.transactionDate.get()
+        self.info['MerchantName'] = self.merchantName.get() if self.otherMerchant.get() == '' else self.otherMerchant.get()
+        self.info['Total'] = self.total.get()
+        self.info['ExpenseType'] = expenseTypes[self.expenseType.get() - 1] if self.other.get() == '' and self.expenseType.get() > 0 else self.other.get()
+        self.info['Property'] = self.property.get()
+        errors = []
+        for entry in self.info:
+            if self.info[entry] in ['', 'Select', '0']:
+                errors.append(entry)
+        if errors:
+            s = errors[0]
+            if len(errors) > 1:
+                s = ", ".join(errors[:-1]) + ', ' + errors[-1]
+            mes = s + ' is empty'
+            messagebox.showerror('Error', mes)
+        else:
+            print(self.info)
+            self.bookkeeping()
+            self.bvar.set(1)
+            self.window.withdraw()
+
+    def bookkeeping(self):
+        file = './properties/' + self.info['Property'] + '.csv'
+        with open(file, 'a') as f:
+            s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + '\n'
+            f.write(s)
+
+        # moving image
+        today = str(date.today())
+        src_folder = r"./images/"
+        dst_folder = r"./prev/"
+        file_name = self.info['ImageFile'].split('/')[-1]
+
+        # checks if folder exists
+        if not os.path.exists(dst_folder + today):
+            os.mkdir(dst_folder + today)
+
+        # check if file exist in destination
+        if not os.path.exists(dst_folder + today + '/' + file_name):
+            shutil.move(src_folder + file_name, dst_folder + today + '/' + file_name)  
+
+root = Tk()
+window = RootWindow(root)
+root.mainloop()
+ 
+
 
