@@ -5,10 +5,6 @@ from tkinter import *
 from tkinter import messagebox
 from datetime import date
 
-directory = 'images'
-properties = ['p1', 'p2']
-expenseTypes = ['repair', 'maintenance', 'other']
-
 class ParseReceipt:
 
     def __init__(self, imageFile):
@@ -44,9 +40,9 @@ class RootWindow:
     def __init__(self, window):
         self.window = window
         self.window.withdraw()
-        for filename in os.listdir(directory):
+        for filename in os.listdir('images'):
             if filename != '.DS_Store':
-                IMAGE_FILE = os.path.join(directory, filename)
+                IMAGE_FILE = os.path.join('images', filename)
                 transaction = ParseReceipt(IMAGE_FILE)
                 info = transaction.parse()
                 if info:
@@ -64,6 +60,7 @@ class PopupWindow():
         self.window = window
         self.window.geometry("-0+0")
         self.window.title('Receipt Information')
+        self.expenseTypes = ['Repair', 'Maintenance', 'Other']
         receiptInformationRow = Frame(self.window)
         receiptInformationLabel = Label(receiptInformationRow,text="Receipt Information", width=40,font=("bold",25))
         receiptInformationRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
@@ -115,13 +112,12 @@ class PopupWindow():
         expenseTypeRow = Frame(self.window)
         expenseTypeLabel = Label(expenseTypeRow,text="Expense Type", width=20,font=("bold",15))
         self.expenseType = IntVar()
-        r1 = Radiobutton(self.window,text="Repair", variable = self.expenseType, value=1)
-        r2 = Radiobutton(self.window,text="Maintenance", variable = self.expenseType, value=2)
-        r3 = Radiobutton(self.window,text="Other", variable = self.expenseType, value=3)
+        radioButtons = []
+        for i in range(len(self.expenseTypes)):
+            radioButtons.append(Radiobutton(self.window,text=self.expenseTypes[i], variable = self.expenseType, value=i + 1))
         expenseTypeLabel.pack(side = LEFT)
-        r1.pack(in_=expenseTypeRow, side="left")
-        r2.pack(in_=expenseTypeRow, side="left")
-        r3.pack(in_=expenseTypeRow, side="left")
+        for i in radioButtons:
+            i.pack(in_=expenseTypeRow, side="left")
         expenseTypeRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
 
         otherLabelRow = Frame(self.window)
@@ -152,7 +148,7 @@ class PopupWindow():
         self.info['TransactionDate'] = self.transactionDate.get()
         self.info['MerchantName'] = self.merchantName.get() if self.otherMerchant.get() == '' else self.otherMerchant.get()
         self.info['Total'] = self.total.get()
-        self.info['ExpenseType'] = expenseTypes[self.expenseType.get() - 1] if self.other.get() == '' and self.expenseType.get() > 0 else self.other.get()
+        self.info['ExpenseType'] = self.expenseTypes[self.expenseType.get() - 1] if self.other.get() == '' and self.expenseType.get() > 0 else self.other.get()
         self.info['Property'] = self.property.get()
         errors = []
         for entry in self.info:
@@ -190,7 +186,8 @@ class PopupWindow():
         if not os.path.exists(dst_folder + today + '/' + file_name):
             shutil.move(src_folder + file_name, dst_folder + today + '/' + file_name)  
 
-root = Tk()
-window = RootWindow(root)
-root.mainloop()
+if __name__ == "__main__":
+    root = Tk()
+    window = RootWindow(root)
+    root.mainloop()
  
