@@ -1,6 +1,19 @@
 ''' Microsoft Azure Form Recognizer Information '''
 def getEndpoint():
-    return # 'endpointlink.com'
+    return 
 
 def getKey():
-    return # 'yourkey'
+    return 
+
+''' AWS Information '''
+def getBucket():
+    return 
+
+def getAccessKey():
+    return 
+
+def getSecretKey():
+    return 
+
+def getRegionName():
+    return 

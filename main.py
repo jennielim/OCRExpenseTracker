@@ -1,9 +1,10 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import FormRecognizerClient
-import os, subprocess, sys, shutil, secret
+import os, subprocess, sys, shutil, secret, boto3, logging, secrets
 from tkinter import *
 from tkinter import messagebox
 from datetime import date
+from botocore.exceptions import ClientError
 
 class ParseReceipt:
 
@@ -72,7 +73,10 @@ class PopupWindow():
         else:
             transactionDateLabel = Label(transactionDateRow,text="Transaction Date", width=20,font=("bold",15))
         self.transactionDate = Entry(transactionDateRow)
-        self.transactionDate.insert(0, self.info['TransactionDate'])
+        if not self.info['TransactionDate']:
+            self.transactionDate.insert(0, 'YEAR-MONTH-DATE')
+        else:
+            self.transactionDate.insert(0, self.info['TransactionDate'])
         transactionDateRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
         transactionDateLabel.pack(side = LEFT)
         self.transactionDate.pack(side = RIGHT, expand = YES, fill = X)
@@ -152,7 +156,7 @@ class PopupWindow():
         self.info['Property'] = self.property.get()
         errors = []
         for entry in self.info:
-            if self.info[entry] in ['', 'Select', '0']:
+            if self.info[entry] in ['', 'Select', '0', 'YEAR-MONTH-DATE']:
                 errors.append(entry)
         if errors:
             s = errors[0]
@@ -168,23 +172,44 @@ class PopupWindow():
 
     def bookkeeping(self):
         file = './properties/' + self.info['Property'] + '.csv'
+        src_folder = r"./images/"
+        file_name = self.info['ImageFile'].split('/')[-1]
+        key_len = 13
+        encrypted_key = secrets.token_urlsafe(key_len) + file_name
+        today = str(date.today())
+        s3 = boto3.client("s3", region_name=secret.getRegionName(), aws_access_key_id=secret.getAccessKey(), aws_secret_access_key=secret.getSecretKey(), endpoint_url='https://s3.' + secret.getRegionName() + '.amazonaws.com')
+        bucket = secret.getBucket()
+        key = today + '/' + encrypted_key
+
+        # uploading files
+        try:
+            s3.upload_file (
+                Filename = src_folder + file_name,
+                Bucket = bucket,
+                Key = key,
+            )   
+        except ClientError as e:
+            logging.error(e)
+            print('error uploading file')
+            return False
+        
+        # checking file is uploaded correctly
+        try:
+            s3.head_object(Bucket=bucket, Key=key)
+        except ClientError as e:
+            print('error uploading file')
+            return int(e.response['Error']['Code']) != 404
+        print('upload successful')
+
+        # deleting image
+        os.remove(src_folder + file_name)
+
+        # writing to file
         with open(file, 'a') as f:
-            s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + '\n'
+            s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + ',' + bucket + ',' + key + '\n'
             f.write(s)
 
-        # moving image
-        today = str(date.today())
-        src_folder = r"./images/"
-        dst_folder = r"./prev/"
-        file_name = self.info['ImageFile'].split('/')[-1]
-
-        # checks if folder exists
-        if not os.path.exists(dst_folder + today):
-            os.mkdir(dst_folder + today)
-
-        # check if file exist in destination
-        if not os.path.exists(dst_folder + today + '/' + file_name):
-            shutil.move(src_folder + file_name, dst_folder + today + '/' + file_name)  
+        return True
 
 if __name__ == "__main__":
     root = Tk()
