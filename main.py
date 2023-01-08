@@ -1,6 +1,6 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import FormRecognizerClient
-import os, subprocess, sys, shutil, secret, boto3, logging, secrets
+import os, subprocess, sys, secret, boto3, logging, secrets, webbrowser
 from tkinter import *
 from tkinter import messagebox
 from datetime import date
@@ -41,14 +41,102 @@ class RootWindow:
     def __init__(self, window):
         self.window = window
         self.window.withdraw()
-        for filename in os.listdir('images'):
-            if filename != '.DS_Store':
-                IMAGE_FILE = os.path.join('images', filename)
-                transaction = ParseReceipt(IMAGE_FILE)
-                info = transaction.parse()
-                if info:
-                    self.create(info)
-        self.window.destroy()
+
+        new_window = Toplevel(root)
+        screen_width = new_window.winfo_screenwidth()
+        screen_height = new_window.winfo_screenheight()
+        window_height = 300
+        window_width = 720
+        x_cordinate = int((screen_width/2) - (window_width/2))
+        y_cordinate = int((screen_height/2) - (window_height/2))
+        new_window.geometry("{}x{}+{}+{}".format(window_width, window_height, x_cordinate, y_cordinate))
+
+        new_window.title('Select an Option')
+        bumperRow = Frame(new_window)
+        bumpterLabel = Label(bumperRow,text="", width=20,font=("bold",15))
+        bumperRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        bumpterLabel.pack()
+
+        headerRow = Frame(new_window)
+        headerLabel = Label(headerRow,text="Select an Option", width=20,font=("bold",30))
+        headerRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        headerLabel.pack()
+
+        def scan():
+            new_window.destroy()
+            for filename in os.listdir('images'):
+                if filename != '.DS_Store':
+                    IMAGE_FILE = os.path.join('images', filename)
+                    transaction = ParseReceipt(IMAGE_FILE)
+                    info = transaction.parse()
+                    if info:
+                        self.create(info)
+            self.window.destroy()
+
+        def download():
+            new_window.destroy()
+            download_window = Toplevel(root)
+
+            screen_width = download_window.winfo_screenwidth()
+            screen_height = download_window.winfo_screenheight()
+            window_height = 300
+            window_width = 720
+            x_cordinate = int((screen_width/2) - (window_width/2))
+            y_cordinate = int((screen_height/2) - (window_height/2))
+            download_window.geometry("{}x{}+{}+{}".format(window_width, window_height, x_cordinate, y_cordinate))
+
+            bumperRow = Frame(download_window)
+            bumpterLabel = Label(bumperRow,text="", width=20,font=("bold",15))
+            bumperRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+            bumpterLabel.pack()
+
+            download_window.title('Download Reciept')
+            headerRow = Frame(download_window)
+            headerLabel = Label(headerRow,text="Download Reciept", width=20,font=("bold",30))
+            headerRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+            headerLabel.pack()
+
+            bumperRow = Frame(download_window)
+            bumpterLabel = Label(bumperRow,text="", width=20,font=("bold",20))
+            bumperRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+            bumpterLabel.pack()
+
+            inputRow = Frame(download_window)
+            inputLabel = Label(inputRow,text="Key", width=20,font=("bold",20))
+            input = Entry(inputRow)
+            inputRow.pack(side = TOP, fill = X, padx = 20, pady = 20)
+            inputLabel.pack(side = LEFT)
+            input.pack(side = RIGHT, expand = YES, fill = X)
+
+            bumperRow = Frame(download_window)
+            bumpterLabel = Label(bumperRow,text="", width=10,font=("bold",10))
+            bumperRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+            bumpterLabel.pack()
+
+            def downloadSubmit(event=None):
+                s3 = boto3.client("s3", region_name=secret.getRegionName(), aws_access_key_id=secret.getAccessKey(), aws_secret_access_key=secret.getSecretKey(), endpoint_url='https://s3.' + secret.getRegionName() + '.amazonaws.com')
+                url = s3.generate_presigned_url(
+                    ClientMethod='get_object',
+                    Params={'Bucket': secret.getBucket(), 'Key': input.get(),},
+                    ExpiresIn=60,
+                )
+
+                webbrowser.open_new(url)
+                # uncomment the 2 lines below if you want to continuously download receipts
+                download_window.destroy()
+                self.window.destroy()
+
+            submitRow = Frame(download_window)
+            download_window.bind('<Return>', downloadSubmit)
+            b1 = Button(submitRow, text='Submit', width=20, height=2, command=downloadSubmit, font=("bold",15))
+            submitRow.pack(side = TOP, fill = X, padx = 5, pady = 5)
+            b1.pack()
+
+        button1=Button(new_window,text='Scan Reciepts',width=20,height=5,font=("bold",20), command=scan)
+        button1.pack(side='left', anchor='e', expand=True)
+        button2=Button(new_window,text='Download Reciept',width=20,height=5,font=("bold",20), command=download)
+        button2.pack(side='right', anchor='w', expand=True)
+    
 
     def create(self, info):
         new_window = Toplevel(self.window)
@@ -168,7 +256,8 @@ class PopupWindow():
             print(self.info)
             self.bookkeeping()
             self.bvar.set(1)
-            self.window.withdraw()
+            self.window.destory()
+            # self.window.withdraw()
 
     def bookkeeping(self):
         file = './properties/' + self.info['Property'] + '.csv'
@@ -202,7 +291,7 @@ class PopupWindow():
         print('upload successful')
 
         # deleting image
-        os.remove(src_folder + file_name)
+        # os.remove(src_folder + file_name)
 
         # writing to file
         with open(file, 'a') as f:
