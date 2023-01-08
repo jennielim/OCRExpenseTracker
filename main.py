@@ -1,13 +1,9 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import FormRecognizerClient
-import os, subprocess, sys, shutil
+import os, subprocess, sys, shutil, secret
 from tkinter import *
 from tkinter import messagebox
 from datetime import date
-
-FORMRECOGNIZER_ENDPOINT = "https://lgaptrent-expenses.cognitiveservices.azure.com/"
-FORMRECOGNIZER_KEY = "843b91bdc6c847da8d313487e1829130"
-client = FormRecognizerClient(FORMRECOGNIZER_ENDPOINT, AzureKeyCredential(FORMRECOGNIZER_KEY))
 
 directory = 'images'
 properties = ['p1', 'p2']
@@ -18,6 +14,9 @@ class ParseReceipt:
     def __init__(self, imageFile):
         self.info = {'TransactionDate' : '', 'MerchantName' : '', 'Total' : '', 'Property': '', 'ExpenseType': '', 'ImageFile' : imageFile, 'ConfidenceLow' : []}
         self.imageFile = imageFile
+        FORMRECOGNIZER_ENDPOINT = secret.getEndpoint()
+        FORMRECOGNIZER_KEY = secret.getKey()
+        self.client = FormRecognizerClient(FORMRECOGNIZER_ENDPOINT, AzureKeyCredential(FORMRECOGNIZER_KEY))
 
     def parse(self):
         if os.path.isfile(self.imageFile):
@@ -30,7 +29,7 @@ class ParseReceipt:
 
             # Send request to Form Recognizer service to process data
             print('scannning. please wait')
-            task = client.begin_recognize_receipts(data)    
+            task = self.client.begin_recognize_receipts(data)    
             analyzed_result = task.result()
             for receipt in analyzed_result:
                 for name, field in receipt.fields.items():
