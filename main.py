@@ -16,7 +16,7 @@ expenseTypes = ['repair', 'maintenance', 'other']
 class ParseReceipt:
 
     def __init__(self, imageFile):
-        self.info = {'TransactionDate' : '', 'MerchantName' : '', 'Total' : '', 'Property': '', 'ExpenseType': '', 'ImageFile' : imageFile}
+        self.info = {'TransactionDate' : '', 'MerchantName' : '', 'Total' : '', 'Property': '', 'ExpenseType': '', 'ImageFile' : imageFile, 'ConfidenceLow' : []}
         self.imageFile = imageFile
 
     def parse(self):
@@ -36,6 +36,8 @@ class ParseReceipt:
                 for name, field in receipt.fields.items():
                     if name in ["MerchantName", "Total", "TransactionDate"]:
                         self.info[name] = str(field.value)
+                        if field.confidence < 0.9:
+                            self.info['ConfidenceLow'].append(name)
             return self.info
 
 class RootWindow:
@@ -69,7 +71,10 @@ class PopupWindow():
         receiptInformationLabel.pack()
 
         transactionDateRow = Frame(self.window)
-        transactionDateLabel = Label(transactionDateRow,text="Transaction Date", width=20,font=("bold",15))
+        if 'TransactionDate' in self.info['ConfidenceLow'] or not self.info['TransactionDate']:
+            transactionDateLabel = Label(transactionDateRow,text="Transaction Date", width=20,fg='#f00',font=("bold",15))
+        else:
+            transactionDateLabel = Label(transactionDateRow,text="Transaction Date", width=20,font=("bold",15))
         self.transactionDate = Entry(transactionDateRow)
         self.transactionDate.insert(0, self.info['TransactionDate'])
         transactionDateRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
@@ -77,7 +82,10 @@ class PopupWindow():
         self.transactionDate.pack(side = RIGHT, expand = YES, fill = X)
 
         merchantNameRow = Frame(self.window)
-        merchantNameLabel = Label(merchantNameRow,text="Merchant Name",width=20,font=("bold",15))
+        if 'MerchantName' in self.info['ConfidenceLow'] or not self.info['MerchantName']:
+            merchantNameLabel = Label(merchantNameRow,text="Merchant Name", width=20,fg='#f00',font=("bold",15))
+        else:
+            merchantNameLabel = Label(merchantNameRow,text="Merchant Name",width=20,font=("bold",15))
         stores = ['Home Depot', 'Menards', 'Walmart', 'Other']
         self.merchantName = StringVar()
         self.merchantName.set(self.info['MerchantName'])
@@ -95,7 +103,10 @@ class PopupWindow():
         self.otherMerchant.pack(side = RIGHT, expand = YES, fill = X)
 
         totalRow = Frame(self.window)
-        totalLabel = Label(totalRow,text="Total", width=20,font=("bold",15))
+        if 'Total' in self.info['ConfidenceLow'] or not self.info['Total']:
+            totalLabel = Label(transactionDateRow,text="Total", width=20,fg='#f00',font=("bold",15))
+        else:
+            totalLabel = Label(totalRow,text="Total", width=20,font=("bold",15))
         self.total = Entry(totalRow)
         self.total.insert(0, self.info['Total'])
         totalRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
@@ -184,5 +195,3 @@ root = Tk()
 window = RootWindow(root)
 root.mainloop()
  
-
-
