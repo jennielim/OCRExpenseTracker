@@ -19,11 +19,6 @@ class ParseReceipt:
         if os.path.isfile(self.imageFile):
             with open(self.imageFile, 'rb') as f:
                 data = f.read()
-
-            # opening image to user
-            opener = "open" if sys.platform == "darwin" else "xdg-open"
-            p = subprocess.call([opener, f.name])
-
             # Send request to Form Recognizer service to process data
             print('scannning. please wait')
             task = self.client.begin_recognize_receipts(data)    
@@ -64,13 +59,17 @@ class RootWindow:
 
         def scan():
             new_window.destroy()
+            allinfo = []
             for filename in os.listdir('images'):
                 if filename != '.DS_Store':
                     IMAGE_FILE = os.path.join('images', filename)
                     transaction = ParseReceipt(IMAGE_FILE)
                     info = transaction.parse()
                     if info:
-                        self.create(info)
+                        allinfo.append(info)
+            print('scan finished')
+            for i in allinfo:
+                self.create(i)
             self.window.destroy()
 
         def download():
@@ -122,7 +121,7 @@ class RootWindow:
                 )
 
                 webbrowser.open_new(url)
-                # uncomment the 2 lines below if you want to continuously download receipts
+                # comment the 2 lines below if you want to continuously download receipts
                 download_window.destroy()
                 self.window.destroy()
 
@@ -141,6 +140,7 @@ class RootWindow:
     def create(self, info):
         new_window = Toplevel(self.window)
         entry_window = PopupWindow(new_window, info)
+        subprocess.Popen(["open", info['ImageFile']])
         entry_window.b1.wait_variable(entry_window.bvar)
 
 class PopupWindow():
@@ -256,8 +256,8 @@ class PopupWindow():
             print(self.info)
             self.bookkeeping()
             self.bvar.set(1)
-            self.window.destory()
-            # self.window.withdraw()
+            self.window.withdraw()
+            subprocess.Popen(["pkill", "-x", "Preview" ])
 
     def bookkeeping(self):
         file = './properties/' + self.info['Property'] + '.csv'
@@ -291,7 +291,7 @@ class PopupWindow():
         print('upload successful')
 
         # deleting image
-        # os.remove(src_folder + file_name)
+        os.remove(src_folder + file_name)
 
         # writing to file
         with open(file, 'a') as f:
