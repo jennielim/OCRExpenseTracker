@@ -4,6 +4,7 @@ User has the option to scan or download previously scanned expense reports that 
 # To run:  
 - Clone  
 - Create and empty folder called 'properties' in the root directory  
+- Put images in 'images' folder. There are sample ones in there  
 - Download any necessary dependencies  
 - Put personal Azure and AWS information in 'secrets.py'  
 - Double click on 'main.command' and the application will start up. 
