@@ -1,14 +1,12 @@
 # OCRExpenseTracker
-Using Microsoft Azure Form Recognizer REST API, receipts are scanned automatically and are able to be categorized for expense tracking purposes. The user has the freedom to edit the data.  
+User has the option to scan or download previously scanned expense reports that have been uploaded to AWS S3. Scanning is done with Microsoft Azure Form Recognizer REST API and is verified by the user though a GUI. The scans are automatically uploaded to AWS S3 and the important information is collected and sorted. The user can view the data by opening a csv file of their choice.
 
-To run:  
-Clone  
-Download necessary dependencies  
-Create 2 folders in the root directory called 'prev' and 'properties'  
-Run python3 main.py  
-The result should result in csv files in the properties folder and the images transferred to the prev folder in another folder with today's date
-
-Create an account with Azure  
-Create an account with AWS 
+# To run:  
+- Clone  
+- Create and empty folder called 'properties' in the root directory  
+- Put images in 'images' folder. There are sample ones in there  
+- Download any necessary dependencies  
+- Put personal Azure and AWS information in 'secrets.py'  
+- Double click on 'main.command' and the application will start up. 
 
 https://towardsdatascience.com/how-to-upload-and-download-files-from-aws-s3-using-python-2022-4c9b787b15f2
