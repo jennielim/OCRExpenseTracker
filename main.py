@@ -60,15 +60,18 @@ class RootWindow:
         def scan():
             new_window.destroy()
             allinfo = []
+            # allinfo = [{'TransactionDate': '2022-12-07', 'MerchantName': 'SHERWIN-WILLIAMS.', 'Total': '434.88', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.17PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-23', 'MerchantName': '', 'Total': '52.35', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.40PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-02', 'MerchantName': 'COSTCO WHOLESALE', 'Total': '47.6', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.17.59PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-05', 'MerchantName': '', 'Total': '', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.46PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-27', 'MerchantName': 'MENARDS', 'Total': '253.95', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.04PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-07', 'MerchantName': 'THE How doers HOMI DEPOT', 'Total': '57.95', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.12PM.png', 'ConfidenceLow': ['MerchantName']}, {'TransactionDate': '2023-01-02', 'MerchantName': 'COSTCO WHOLESALE', 'Total': '23.19', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.28PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-03', 'MerchantName': 'MENARDS', 'Total': '31.91', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.24PM.png', 'ConfidenceLow': ['MerchantName']}]
             for filename in os.listdir('images'):
                 if filename != '.DS_Store':
                     IMAGE_FILE = os.path.join('images', filename)
-                    transaction = ParseReceipt(IMAGE_FILE)
+                    NEW_IMAGE_FILE = IMAGE_FILE.replace(' ', '')
+                    os.rename(IMAGE_FILE, NEW_IMAGE_FILE)
+                    transaction = ParseReceipt(NEW_IMAGE_FILE)
                     info = transaction.parse()
                     if info:
                         allinfo.append(info)
             print('scan finished')
-            print(allinfo)
+            # print(allinfo)
             for i in allinfo:
                 self.create(i)
             self.window.destroy()
@@ -171,29 +174,34 @@ class PopupWindow():
         self.transactionDate.pack(side = RIGHT, expand = YES, fill = X)
 
         merchantNameRow = Frame(self.window)
+        self.stores = ['Home Depot', 'Menards', 'Walmart', 'Other']
         if 'MerchantName' in self.info['ConfidenceLow'] or not self.info['MerchantName']:
             merchantNameLabel = Label(merchantNameRow,text="Merchant Name", width=20,fg='#f00',font=("bold",15))
         else:
             merchantNameLabel = Label(merchantNameRow,text="Merchant Name",width=20,font=("bold",15))
-        stores = ['Home Depot', 'Menards', 'Walmart', 'Other']
+        if self.info['MerchantName'] and self.info['MerchantName'].lower() not in self.stores:
+            self.stores.append(self.info['MerchantName'])
         self.merchantName = StringVar()
         self.merchantName.set(self.info['MerchantName'])
-        droplist = OptionMenu(merchantNameRow, self.merchantName, *stores)
-        droplist.config(width=15)
+        self.otherMerchant = StringVar()
+
+        def chooseOtherMerchant(e=None):
+            if self.merchantName.get() == 'Other':
+                merchantNameLabel.destroy()
+                self.otherMerchant = Entry(merchantNameRow)
+                otherMerchantLabel = Label(merchantNameRow,text="Other Merchant", width=20,font=("bold",15))
+                otherMerchantLabel.pack(side = LEFT)
+                self.otherMerchant.pack(side = RIGHT, expand = YES, fill = X)
+
+        merchantDroplist = OptionMenu(merchantNameRow, self.merchantName, *self.stores, command=chooseOtherMerchant)
+        merchantDroplist.config(width=15)
         merchantNameRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
         merchantNameLabel.pack(side = LEFT)
-        droplist.pack(side = RIGHT, expand = YES, fill = X)
-
-        otherMerchantRow = Frame(self.window)
-        otherMerchantLabel = Label(otherMerchantRow,text="Other Merchant", width=20,font=("bold",15))
-        self.otherMerchant = Entry(otherMerchantRow)
-        otherMerchantRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
-        otherMerchantLabel.pack(side = LEFT)
-        self.otherMerchant.pack(side = RIGHT, expand = YES, fill = X)
+        merchantDroplist.pack(side = RIGHT, expand = YES, fill = X)
 
         totalRow = Frame(self.window)
         if 'Total' in self.info['ConfidenceLow'] or not self.info['Total']:
-            totalLabel = Label(transactionDateRow,text="Total", width=20,fg='#f00',font=("bold",15))
+            totalLabel = Label(totalRow,text="Total", width=20,fg='#f00',font=("bold",15))
         else:
             totalLabel = Label(totalRow,text="Total", width=20,font=("bold",15))
         self.total = Entry(totalRow)
@@ -204,21 +212,23 @@ class PopupWindow():
 
         expenseTypeRow = Frame(self.window)
         expenseTypeLabel = Label(expenseTypeRow,text="Expense Type", width=20,font=("bold",15))
-        self.expenseType = IntVar()
-        radioButtons = []
-        for i in range(len(self.expenseTypes)):
-            radioButtons.append(Radiobutton(self.window,text=self.expenseTypes[i], variable = self.expenseType, value=i + 1))
-        expenseTypeLabel.pack(side = LEFT)
-        for i in radioButtons:
-            i.pack(in_=expenseTypeRow, side="left")
-        expenseTypeRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        self.expenseType = StringVar()
+        self.expenseType.set('Select')
+        self.other = StringVar()
 
-        otherLabelRow = Frame(self.window)
-        otherLabel = Label(otherLabelRow,text="Other Expense Type", width=20,font=("bold",15))
-        self.other = Entry(otherLabelRow)
-        otherLabelRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
-        otherLabel.pack(side = LEFT)
-        self.other.pack(side = RIGHT, expand = YES, fill = X)
+        def chooseOtherExpense(e=None):
+            if self.expenseType.get() == 'Other':
+                expenseTypeLabel.destroy()
+                self.other = Entry(expenseTypeRow)
+                otherLabel = Label(expenseTypeRow,text="Other Expense", width=20,font=("bold",15))
+                otherLabel.pack(side = LEFT)
+                self.other.pack(side = RIGHT, expand = YES, fill = X)
+
+        expenseDroplist = OptionMenu(expenseTypeRow, self.expenseType, *self.expenseTypes, command=chooseOtherExpense)
+        expenseDroplist.config(width=15)
+        expenseTypeRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        expenseTypeLabel.pack(side = LEFT)
+        expenseDroplist.pack(side = RIGHT, expand = YES, fill = X)
 
         propertyRow = Frame(self.window)
         propertyLabel = Label(propertyRow,text="Property",width=20,font=("bold",15))
@@ -240,8 +250,10 @@ class PopupWindow():
     def clicked(self):
         self.info['TransactionDate'] = self.transactionDate.get()
         self.info['MerchantName'] = self.merchantName.get() if self.otherMerchant.get() == '' else self.otherMerchant.get()
+        if 'home' in self.info['MerchantName'].lower() and self.info['MerchantName'] not in self.stores:
+            self.info['MerchantName'] = 'Home Depot'
         self.info['Total'] = self.total.get()
-        self.info['ExpenseType'] = self.expenseTypes[self.expenseType.get() - 1] if self.other.get() == '' and self.expenseType.get() > 0 else self.other.get()
+        self.info['ExpenseType'] = self.expenseType.get() if self.other.get() == '' else self.other.get()
         self.info['Property'] = self.property.get()
         errors = []
         for entry in self.info:
@@ -254,7 +266,6 @@ class PopupWindow():
             mes = s + ' is empty'
             messagebox.showerror('Error', mes)
         else:
-            print('here?')
             subprocess.Popen(["pkill", "-x", "Preview" ])
             print(self.info)
             self.bookkeeping()
@@ -293,7 +304,7 @@ class PopupWindow():
         print('upload successful')
 
         # deleting image
-        os.remove(src_folder + file_name)
+        # os.remove(src_folder + file_name)
 
         # writing to file
         with open(file, 'a') as f:
