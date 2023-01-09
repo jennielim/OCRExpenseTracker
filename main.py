@@ -59,15 +59,17 @@ class RootWindow:
 
         def scan():
             new_window.destroy()
-            allinfo = []
-            for filename in os.listdir('images'):
-                if filename != '.DS_Store':
-                    IMAGE_FILE = os.path.join('images', filename)
-                    transaction = ParseReceipt(IMAGE_FILE)
-                    info = transaction.parse()
-                    if info:
-                        allinfo.append(info)
+            # allinfo = []
+            allinfo = [{'TransactionDate': '2022-12-27', 'MerchantName': 'THE How doers HOME', 'Total': '152.47', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/homedepot.jpg', 'ConfidenceLow': ['MerchantName']}, {'TransactionDate': '2018-12-30', 'MerchantName': 'THE HOME', 'Total': '1.91', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/homedepot2.png', 'ConfidenceLow': ['MerchantName']}, {'TransactionDate': '', 'MerchantName': 'FJ-mæK HomeGoods®', 'Total': '24.47', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/tjmax.jpg', 'ConfidenceLow': ['MerchantName']}, {'TransactionDate': '2022-12-28', 'MerchantName': 'MENARDS', 'Total': '682.76', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/menards.jpg', 'ConfidenceLow': ['MerchantName']}, {'TransactionDate': '2019-06-10', 'MerchantName': 'Contoso', 'Total': '1203.39', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/sample-receipt.png', 'ConfidenceLow': []}]
+            # for filename in os.listdir('images'):
+            #     if filename != '.DS_Store':
+            #         IMAGE_FILE = os.path.join('images', filename)
+            #         transaction = ParseReceipt(IMAGE_FILE)
+            #         info = transaction.parse()
+            #         if info:
+            #             allinfo.append(info)
             print('scan finished')
+            print(allinfo)
             for i in allinfo:
                 self.create(i)
             self.window.destroy()
@@ -253,11 +255,12 @@ class PopupWindow():
             mes = s + ' is empty'
             messagebox.showerror('Error', mes)
         else:
+            print('here?')
+            subprocess.Popen(["pkill", "-x", "Preview" ])
             print(self.info)
             self.bookkeeping()
             self.bvar.set(1)
             self.window.withdraw()
-            subprocess.Popen(["pkill", "-x", "Preview" ])
 
     def bookkeeping(self):
         file = './properties/' + self.info['Property'] + '.csv'
