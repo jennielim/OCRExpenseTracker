@@ -17,3 +17,13 @@ def getSecretKey():
 
 def getRegionName():
     return 
+
+''' Input Field Information '''
+def getExpenseTypes():
+    return 
+
+def getStores():
+    return 
+
+def getProperties():
+    return 
