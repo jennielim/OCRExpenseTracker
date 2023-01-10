@@ -7,8 +7,8 @@ from botocore.exceptions import ClientError
 
 '''
 TO DO:
-Store reciepts in AWS by property name
 Store CSV files in AWS (delete current and add new)
+Create header for new files
 Search the dropdown
 '''
 class ParseReceipt:
@@ -64,16 +64,17 @@ class RootWindow:
 
         def scan():
             new_window.destroy()
-            allinfo = []
-            for filename in os.listdir('images'):
-                if filename != '.DS_Store':
-                    IMAGE_FILE = os.path.join('images', filename)
-                    NEW_IMAGE_FILE = IMAGE_FILE.replace(' ', '')
-                    os.rename(IMAGE_FILE, NEW_IMAGE_FILE)
-                    transaction = ParseReceipt(NEW_IMAGE_FILE)
-                    info = transaction.parse()
-                    if info:
-                        allinfo.append(info)
+            # allinfo = []
+            allinfo = [{'TransactionDate': '2022-12-07', 'MerchantName': 'SHERWIN-WILLIAMS.', 'Total': '434.88', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.17PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-23', 'MerchantName': '', 'Total': '52.35', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.40PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-02', 'MerchantName': 'COSTCO WHOLESALE', 'Total': '47.6', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.17.59PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-05', 'MerchantName': '', 'Total': '', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.46PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-27', 'MerchantName': 'MENARDS', 'Total': '253.95', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.04PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-07', 'MerchantName': 'THE How doers HOMI DEPOT', 'Total': '57.95', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.12PM.png', 'ConfidenceLow': ['MerchantName']}, {'TransactionDate': '2023-01-02', 'MerchantName': 'COSTCO WHOLESALE', 'Total': '23.19', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.28PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-03', 'MerchantName': 'MENARDS', 'Total': '31.91', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.24PM.png', 'ConfidenceLow': ['MerchantName']}]
+            # for filename in os.listdir('images'):
+            #     if filename != '.DS_Store':
+            #         IMAGE_FILE = os.path.join('images', filename)
+            #         NEW_IMAGE_FILE = IMAGE_FILE.replace(' ', '')
+            #         os.rename(IMAGE_FILE, NEW_IMAGE_FILE)
+            #         transaction = ParseReceipt(NEW_IMAGE_FILE)
+            #         info = transaction.parse()
+            #         if info:
+            #             allinfo.append(info)
             print('scan finished')
             for i in allinfo:
                 self.create(i)
@@ -309,10 +310,29 @@ class PopupWindow():
         # os.remove(src_folder + file_name)
 
         # writing to file
-        with open(file, 'a') as f:
-            s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + ',' + bucket + ',' + key + '\n'
-            f.write(s)
-
+        if not os.path.exists(file):
+            with open(file, 'a') as f:
+                header = 'Transation Date, Merchant Name, Total, Expense Type, AWS Bucket, AWS Key\n'
+                f.write(header)
+                s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + ',' + bucket + ',' + key + '\n'
+                f.write(s)
+        else:
+            addNewLine = False
+            with open(file, 'rb') as f:
+                try:  
+                    f.seek(-2, os.SEEK_END)
+                    while f.read(1) != b'\n':
+                        f.seek(-2, os.SEEK_CUR)
+                except OSError:
+                    f.seek(0)
+                last_line = f.readline().decode()
+                if last_line[-1] != '\n':
+                    addNewLine = True
+            with open(file, 'a') as f:
+                s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + ',' + bucket + ',' + key + '\n'
+                if addNewLine:
+                    s = '\n' + s
+                f.write(s)
         return True
 
 if __name__ == "__main__":
