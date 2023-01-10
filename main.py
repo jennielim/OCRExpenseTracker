@@ -3,7 +3,6 @@ from azure.ai.formrecognizer import FormRecognizerClient
 import os, subprocess, sys, secret, boto3, logging, secrets, webbrowser
 from tkinter import *
 from tkinter import messagebox
-from datetime import date
 from botocore.exceptions import ClientError
 
 '''
@@ -282,10 +281,9 @@ class PopupWindow():
         file_name = self.info['ImageFile'].split('/')[-1]
         key_len = 13
         encrypted_key = secrets.token_urlsafe(key_len) + file_name
-        today = str(date.today())
         s3 = boto3.client("s3", region_name=secret.getRegionName(), aws_access_key_id=secret.getAccessKey(), aws_secret_access_key=secret.getSecretKey(), endpoint_url='https://s3.' + secret.getRegionName() + '.amazonaws.com')
         bucket = secret.getBucket()
-        key = today + '/' + encrypted_key
+        key = self.info['Property'] + '/' + encrypted_key
 
         # uploading files
         try:
