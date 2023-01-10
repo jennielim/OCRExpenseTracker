@@ -6,6 +6,12 @@ from tkinter import messagebox
 from datetime import date
 from botocore.exceptions import ClientError
 
+'''
+TO DO:
+Store reciepts in AWS by property name
+Store CSV files in AWS (delete current and add new)
+Search the dropdown
+'''
 class ParseReceipt:
 
     def __init__(self, imageFile):
@@ -60,7 +66,6 @@ class RootWindow:
         def scan():
             new_window.destroy()
             allinfo = []
-            # allinfo = [{'TransactionDate': '2022-12-07', 'MerchantName': 'SHERWIN-WILLIAMS.', 'Total': '434.88', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.17PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-23', 'MerchantName': '', 'Total': '52.35', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.40PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-02', 'MerchantName': 'COSTCO WHOLESALE', 'Total': '47.6', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.17.59PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-05', 'MerchantName': '', 'Total': '', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.46PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-27', 'MerchantName': 'MENARDS', 'Total': '253.95', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.04PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-07', 'MerchantName': 'THE How doers HOMI DEPOT', 'Total': '57.95', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.12PM.png', 'ConfidenceLow': ['MerchantName']}, {'TransactionDate': '2023-01-02', 'MerchantName': 'COSTCO WHOLESALE', 'Total': '23.19', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.28PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-03', 'MerchantName': 'MENARDS', 'Total': '31.91', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.24PM.png', 'ConfidenceLow': ['MerchantName']}]
             for filename in os.listdir('images'):
                 if filename != '.DS_Store':
                     IMAGE_FILE = os.path.join('images', filename)
@@ -71,7 +76,6 @@ class RootWindow:
                     if info:
                         allinfo.append(info)
             print('scan finished')
-            # print(allinfo)
             for i in allinfo:
                 self.create(i)
             self.window.destroy()
@@ -126,8 +130,8 @@ class RootWindow:
 
                 webbrowser.open_new(url)
                 # comment the 2 lines below if you want to continuously download receipts
-                download_window.destroy()
-                self.window.destroy()
+                # download_window.destroy()
+                # self.window.destroy()
 
             submitRow = Frame(download_window)
             download_window.bind('<Return>', downloadSubmit)
@@ -153,7 +157,7 @@ class PopupWindow():
         self.window = window
         self.window.geometry("-0+0")
         self.window.title('Receipt Information')
-        self.expenseTypes = ['Repair', 'Maintenance', 'Other']
+        self.expenseTypes = secret.getExpenseTypes()
         receiptInformationRow = Frame(self.window)
         receiptInformationLabel = Label(receiptInformationRow,text="Receipt Information", width=40,font=("bold",25))
         receiptInformationRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
@@ -174,7 +178,7 @@ class PopupWindow():
         self.transactionDate.pack(side = RIGHT, expand = YES, fill = X)
 
         merchantNameRow = Frame(self.window)
-        self.stores = ['Home Depot', 'Menards', 'Walmart', 'Other']
+        self.stores = secret.getStores()
         if 'MerchantName' in self.info['ConfidenceLow'] or not self.info['MerchantName']:
             merchantNameLabel = Label(merchantNameRow,text="Merchant Name", width=20,fg='#f00',font=("bold",15))
         else:
@@ -232,7 +236,7 @@ class PopupWindow():
 
         propertyRow = Frame(self.window)
         propertyLabel = Label(propertyRow,text="Property",width=20,font=("bold",15))
-        properties = ['p1', 'p2']
+        properties = secret.getProperties()
         self.property = StringVar()
         droplist = OptionMenu(propertyRow, self.property, *properties)
         droplist.config(width=15)
