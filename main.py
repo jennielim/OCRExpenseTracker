@@ -1,6 +1,6 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import FormRecognizerClient
-import os, subprocess, sys, secret, boto3, logging, secrets, webbrowser
+import os, subprocess, secret, boto3, logging, secrets, webbrowser
 from tkinter import *
 from tkinter import messagebox
 from botocore.exceptions import ClientError
@@ -176,31 +176,46 @@ class PopupWindow():
         self.transactionDate.pack(side = RIGHT, expand = YES, fill = X)
 
         merchantNameRow = Frame(self.window)
+        self.merchantNameLabel = None
         self.stores = secret.getStores()
         if 'MerchantName' in self.info['ConfidenceLow'] or not self.info['MerchantName']:
-            merchantNameLabel = Label(merchantNameRow,text="Merchant Name", width=20,fg='#f00',font=("bold",15))
+            self.merchantNameLabel = Label(merchantNameRow,text="Merchant Name", width=20,fg='#f00',font=("bold",15))
         else:
-            merchantNameLabel = Label(merchantNameRow,text="Merchant Name",width=20,font=("bold",15))
+            self.merchantNameLabel = Label(merchantNameRow,text="Merchant Name",width=20,font=("bold",15))
         if self.info['MerchantName'] and self.info['MerchantName'].lower() not in self.stores:
             self.stores.append(self.info['MerchantName'])
+        self.otherMerchantLabel = None
         self.merchantName = StringVar()
         self.merchantName.set(self.info['MerchantName'])
         self.otherMerchant = StringVar()
+        self.otherMerchantOpen = False
 
         def chooseOtherMerchant(e=None):
-            if self.merchantName.get() == 'Other':
-                merchantNameLabel.destroy()
+            if self.merchantName.get() == 'Other' and not self.otherMerchantOpen:
+                self.merchantNameLabel.destroy()
                 self.otherMerchant = Entry(merchantNameRow)
-                otherMerchantLabel = Label(merchantNameRow,text="Other Merchant", width=20,font=("bold",15))
-                otherMerchantLabel.pack(side = LEFT)
+                self.otherMerchantLabel = Label(merchantNameRow,text="Other Merchant", width=20,font=("bold",15))
+                self.otherMerchantLabel.pack(side = LEFT)
                 self.otherMerchant.pack(side = RIGHT, expand = YES, fill = X)
+                self.otherMerchantOpen = True
+            elif self.merchantName.get() != 'Other' and self.otherMerchantOpen:
+                self.otherMerchant.destroy()
+                self.otherMerchant = StringVar()
+                self.otherMerchantLabel.destroy()
+                self.merchantNameLabel = Label(merchantNameRow,text="Other Merchant", width=20,font=("bold",15))
+                self.merchantNameLabel.pack(side = LEFT)
+                self.otherMerchantOpen = False
+
+
+        merchantEntry = Entry(merchantNameRow)
+        merchantEntry['textvariable'] = self.merchantName
 
         merchantDroplist = OptionMenu(merchantNameRow, self.merchantName, *self.stores, command=chooseOtherMerchant)
         merchantDroplist.config(width=15)
         merchantNameRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
-        merchantNameLabel.pack(side = LEFT)
+        self.merchantNameLabel.pack(side = LEFT)
         merchantDroplist.pack(side = RIGHT, expand = YES, fill = X)
-
+        
         totalRow = Frame(self.window)
         if 'Total' in self.info['ConfidenceLow'] or not self.info['Total']:
             totalLabel = Label(totalRow,text="Total", width=20,fg='#f00',font=("bold",15))
@@ -213,29 +228,44 @@ class PopupWindow():
         self.total.pack(side = RIGHT, expand = YES, fill = X)
 
         expenseTypeRow = Frame(self.window)
-        expenseTypeLabel = Label(expenseTypeRow,text="Expense Type", width=20,font=("bold",15))
+        self.expenseTypeLabel = Label(expenseTypeRow,text="Expense Type", width=20,font=("bold",15))
         self.expenseType = StringVar()
         self.expenseType.set('Select')
+        self.otherLabel = None
         self.other = StringVar()
+        self.otherOpen = False
 
         def chooseOtherExpense(e=None):
-            if self.expenseType.get() == 'Other':
-                expenseTypeLabel.destroy()
+            if self.expenseType.get() == 'Other' and not self.otherOpen:
+                self.expenseTypeLabel.destroy()
                 self.other = Entry(expenseTypeRow)
-                otherLabel = Label(expenseTypeRow,text="Other Expense", width=20,font=("bold",15))
-                otherLabel.pack(side = LEFT)
+                self.otherLabel = Label(expenseTypeRow,text="Other Expense", width=20,font=("bold",15))
+                self.otherLabel.pack(side = LEFT)
                 self.other.pack(side = RIGHT, expand = YES, fill = X)
+                self.otherOpen  = True
+            elif self.expenseType.get() != 'Other' and self.otherOpen:
+                self.other.destroy()
+                self.other = StringVar()
+                self.otherLabel.destroy()
+                self.expenseTypeLabel = Label(expenseTypeRow,text="Expense Type", width=20,font=("bold",15))
+                self.expenseTypeLabel.pack(side = LEFT)
+                self.otherOpen  = False
+
+        merchantEntry = Entry(expenseTypeRow)
+        merchantEntry['textvariable'] = self.expenseType
 
         expenseDroplist = OptionMenu(expenseTypeRow, self.expenseType, *self.expenseTypes, command=chooseOtherExpense)
         expenseDroplist.config(width=15)
         expenseTypeRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
-        expenseTypeLabel.pack(side = LEFT)
+        self.expenseTypeLabel.pack(side = LEFT)
         expenseDroplist.pack(side = RIGHT, expand = YES, fill = X)
 
         propertyRow = Frame(self.window)
         propertyLabel = Label(propertyRow,text="Property",width=20,font=("bold",15))
         properties = secret.getProperties()
         self.property = StringVar()
+        merchantEntry = Entry(propertyRow)
+        merchantEntry['textvariable'] = self.property
         droplist = OptionMenu(propertyRow, self.property, *properties)
         droplist.config(width=15)
         self.property.set('Select')
