@@ -3,6 +3,7 @@ User has the option to scan or download previously scanned expense reports that 
 
 # To run:  
 - Clone  
+- pip3 install -r requirements.txt
 - Create and empty folder called 'properties' in the root directory  
 - Put images in 'images' folder. There are sample ones in there  
 - Download any necessary dependencies  
