@@ -19,7 +19,6 @@ class ParseReceipt:
             with open(self.imageFile, 'rb') as f:
                 data = f.read()
             # Send request to Form Recognizer service to process data
-            print('scannning. please wait')
             task = self.client.begin_recognize_receipts(data)    
             analyzed_result = task.result()
             for receipt in analyzed_result:
@@ -69,18 +68,21 @@ class RootWindow:
 
         def scan():
             new_window.destroy()
-            allinfo = [{'TransactionDate': '2022-12-28', 'MerchantName': 'MENARDS', 'Total': '682.76', 'Property': '', 'ExpenseType': '', 'Items': ["1X2-8' #2 QUALITY BOARD", 'BRITE WH 6PNL 30LH', '1/2 × 2×4 OSB NOM.', 'CRFT CASE WM473 BWHTWD', 'RNCH BASE LWM724 GLDOAK', 'BRITE WH 6PNL 30RH', '6\'9" METAL 1-1/4\'', '"BEDDAR WOOD SHIMS -12P', 'SC PRIVACY TULIP KNOB', 'EZ HANG DOOR HANGER'], 'Payment Method': '', 'ImageFile': 'images/menards.jpg', 'ConfidenceLow': ['MerchantName']}, {'TransactionDate': '2019-06-10', 'MerchantName': 'Contoso', 'Total': '1203.39', 'Property': '', 'ExpenseType': '', 'Items': ['Surface Pro 6', 'SurfacePen'], 'Payment Method': '', 'ImageFile': 'images/sample-receipt.png', 'ConfidenceLow': []}]
-            # allinfo = []
-            # for filename in os.listdir('images'):
-            #     if filename != '.DS_Store':
-            #         IMAGE_FILE = os.path.join('images', filename)
-            #         NEW_IMAGE_FILE = IMAGE_FILE.replace(' ', '')
-            #         os.rename(IMAGE_FILE, NEW_IMAGE_FILE)
-            #         transaction = ParseReceipt(NEW_IMAGE_FILE)
-            #         info = transaction.parse()
-            #         if info:
-            #             allinfo.append(info)
-            # print(allinfo)
+            allinfo = []
+            idx = 1
+            completeLen = len(os.listdir('images'))
+            for filename in os.listdir('images'):
+                if filename != '.DS_Store':
+                    IMAGE_FILE = os.path.join('images', filename)
+                    NEW_IMAGE_FILE = IMAGE_FILE.replace(' ', '')
+                    os.rename(IMAGE_FILE, NEW_IMAGE_FILE)
+                    transaction = ParseReceipt(NEW_IMAGE_FILE)
+                    a = 'scannning. please wait ' + str(idx) + '/' + str(completeLen)
+                    print(a)
+                    info = transaction.parse()
+                    if info:
+                        allinfo.append(info)
+                idx += 1
             print('scan finished')
             for i in allinfo:
                 self.create(i)
