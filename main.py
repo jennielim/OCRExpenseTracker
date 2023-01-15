@@ -5,15 +5,10 @@ from tkinter import *
 from tkinter import messagebox
 from botocore.exceptions import ClientError
 
-'''
-TO DO:
-Search the dropdown
-Training the form recognizer??
-'''
 class ParseReceipt:
 
     def __init__(self, imageFile):
-        self.info = {'TransactionDate' : '', 'MerchantName' : '', 'Total' : '', 'Property': '', 'ExpenseType': '', 'ImageFile' : imageFile, 'ConfidenceLow' : []}
+        self.info = {'TransactionDate' : '', 'MerchantName' : '', 'Total' : '', 'Property': '', 'ExpenseType': '', 'Items': '', 'ImageFile' : imageFile, 'ConfidenceLow' : []}
         self.imageFile = imageFile
         FORMRECOGNIZER_ENDPOINT = secret.getEndpoint()
         FORMRECOGNIZER_KEY = secret.getKey()
@@ -29,7 +24,17 @@ class ParseReceipt:
             analyzed_result = task.result()
             for receipt in analyzed_result:
                 for name, field in receipt.fields.items():
-                    if name in ["MerchantName", "Total", "TransactionDate"]:
+                    if name == "Items":
+                        i = []
+                        for idx, items in enumerate(field.value):
+                            nameAndPrice = []
+                            for item_name, item in items.value.items():
+                                nameAndPrice.append(item.value)
+                            i.append(nameAndPrice)
+                        self.info[name] = i
+                        if field.confidence < 0.9:
+                            self.info['ConfidenceLow'].append(name)
+                    elif name in ["MerchantName", "Total", "TransactionDate"]:
                         self.info[name] = str(field.value)
                         if field.confidence < 0.9:
                             self.info['ConfidenceLow'].append(name)
@@ -64,6 +69,7 @@ class RootWindow:
         def scan():
             new_window.destroy()
             allinfo = []
+            # allinfo = [{'TransactionDate': '2022-12-07', 'MerchantName': 'SHERWIN-WILLIAMS.', 'Total': '434.88', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.17PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-23', 'MerchantName': '', 'Total': '52.35', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.40PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-02', 'MerchantName': 'COSTCO WHOLESALE', 'Total': '47.6', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.17.59PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-05', 'MerchantName': '', 'Total': '', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.46PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-27', 'MerchantName': 'MENARDS', 'Total': '253.95', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.04PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-07', 'MerchantName': 'THE How doers HOMI DEPOT', 'Total': '57.95', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.12PM.png', 'ConfidenceLow': ['MerchantName']}, {'TransactionDate': '2023-01-02', 'MerchantName': 'COSTCO WHOLESALE', 'Total': '23.19', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.28PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-03', 'MerchantName': 'MENARDS', 'Total': '31.91', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.24PM.png', 'ConfidenceLow': ['MerchantName']}]
             for filename in os.listdir('images'):
                 if filename != '.DS_Store':
                     IMAGE_FILE = os.path.join('images', filename)
@@ -273,6 +279,17 @@ class PopupWindow():
         propertyLabel.pack(side = LEFT)
         droplist.pack(side = RIGHT, expand = YES, fill = X)
 
+        itemsRow = Frame(self.window)
+        if 'Items' in self.info['ConfidenceLow'] or not self.info['Items']:
+            itemsLabel = Label(itemsRow,text="Items", width=20,fg='#f00',font=("bold",15))
+        else:
+            itemsLabel = Label(itemsRow,text="Items", width=20,font=("bold",15))
+        self.items = Entry(itemsRow)
+        self.items.insert(0, self.info['Items'])
+        itemsRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        itemsLabel.pack(side = LEFT)
+        self.items.pack(side = RIGHT, expand = YES, fill = X)
+
         submitRow = Frame(self.window)
         self.bvar = IntVar()
         self.b1 = Button(submitRow, text='Submit', width=20, command=self.clicked)
@@ -287,6 +304,7 @@ class PopupWindow():
         self.info['Total'] = self.total.get()
         self.info['ExpenseType'] = self.expenseType.get() if self.other.get() == '' else self.other.get()
         self.info['Property'] = self.property.get()
+        self.info['Items'] = self.items.get()
         errors = []
         for entry in self.info:
             if self.info[entry] in ['', 'Select', '0', 'YEAR-MONTH-DATE']:
@@ -335,9 +353,9 @@ class PopupWindow():
     def writeToFile(self, file, bucket, key):
         if not os.path.exists(file):
             with open(file, 'a') as f:
-                header = 'Transation Date, Merchant Name, Total, Expense Type, AWS Bucket, AWS Key\n'
+                header = 'Transation Date, Merchant Name, Total, Expense Type, Items, AWS Key\n'
                 f.write(header)
-                s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + ',' + bucket + ',' + key + '\n'
+                s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + ',' + self.info['Items'] + ',' + key + '\n'
                 f.write(s)
         else:
             addNewLine = False
@@ -352,7 +370,7 @@ class PopupWindow():
                 if last_line[-1] != '\n':
                     addNewLine = True
             with open(file, 'a') as f:
-                s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + ',' + bucket + ',' + key + '\n'
+                s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + ',' + self.info['Items'] + ',' + key + '\n'
                 if addNewLine:
                     s = '\n' + s
                 f.write(s)
