@@ -1,5 +1,4 @@
 azure-ai-formrecognizer
 azure.core
-os-sys
 boto3
 tk
