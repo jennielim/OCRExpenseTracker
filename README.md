@@ -8,7 +8,7 @@ User has the option to scan or download previously scanned expense reports that 
 - Create and empty folder called 'properties' in the root directory  
 - Put images in 'images' folder. There are sample ones in there  
 - Put personal Azure and AWS information in 'secrets.py'  
-- Create AppleScript in Automator by entering this code. 
+- Create AppleScript in Automator by entering this code and entering the correct path
 ```
 on run {input, parameters}
 	
