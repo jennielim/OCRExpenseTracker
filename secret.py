@@ -27,3 +27,6 @@ def getStores():
 
 def getProperties():
     return 
+
+def getPaymentMethods():
+    return
