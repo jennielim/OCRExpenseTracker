@@ -27,10 +27,9 @@ class ParseReceipt:
                     if name == "Items":
                         i = []
                         for idx, items in enumerate(field.value):
-                            nameAndPrice = []
                             for item_name, item in items.value.items():
-                                nameAndPrice.append(item.value)
-                            i.append(nameAndPrice)
+                                i.append(item.value)
+                                break
                         self.info[name] = i
                         if field.confidence < 0.9:
                             self.info['ConfidenceLow'].append(name)
@@ -69,7 +68,6 @@ class RootWindow:
         def scan():
             new_window.destroy()
             allinfo = []
-            # allinfo = [{'TransactionDate': '2022-12-07', 'MerchantName': 'SHERWIN-WILLIAMS.', 'Total': '434.88', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.17PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-23', 'MerchantName': '', 'Total': '52.35', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.40PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-02', 'MerchantName': 'COSTCO WHOLESALE', 'Total': '47.6', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.17.59PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-05', 'MerchantName': '', 'Total': '', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.46PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2022-12-27', 'MerchantName': 'MENARDS', 'Total': '253.95', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.04PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-07', 'MerchantName': 'THE How doers HOMI DEPOT', 'Total': '57.95', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.12PM.png', 'ConfidenceLow': ['MerchantName']}, {'TransactionDate': '2023-01-02', 'MerchantName': 'COSTCO WHOLESALE', 'Total': '23.19', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.28PM.png', 'ConfidenceLow': []}, {'TransactionDate': '2023-01-03', 'MerchantName': 'MENARDS', 'Total': '31.91', 'Property': '', 'ExpenseType': '', 'ImageFile': 'images/ScreenShot2023-01-08at8.18.24PM.png', 'ConfidenceLow': ['MerchantName']}]
             for filename in os.listdir('images'):
                 if filename != '.DS_Store':
                     IMAGE_FILE = os.path.join('images', filename)
@@ -80,6 +78,7 @@ class RootWindow:
                     if info:
                         allinfo.append(info)
             print('scan finished')
+            print(allinfo)
             for i in allinfo:
                 self.create(i)
             self.window.destroy()
@@ -257,8 +256,8 @@ class PopupWindow():
                 self.expenseTypeLabel.pack(side = LEFT)
                 self.otherOpen  = False
 
-        merchantEntry = Entry(expenseTypeRow)
-        merchantEntry['textvariable'] = self.expenseType
+        expenseEntry = Entry(expenseTypeRow)
+        expenseEntry['textvariable'] = self.expenseType
 
         expenseDroplist = OptionMenu(expenseTypeRow, self.expenseType, *self.expenseTypes, command=chooseOtherExpense)
         expenseDroplist.config(width=15)
@@ -267,17 +266,38 @@ class PopupWindow():
         expenseDroplist.pack(side = RIGHT, expand = YES, fill = X)
 
         propertyRow = Frame(self.window)
-        propertyLabel = Label(propertyRow,text="Property",width=20,font=("bold",15))
         properties = secret.getProperties()
+        self.propertyLabel = Label(propertyRow,text="Property", width=20,font=("bold",15))
         self.property = StringVar()
-        merchantEntry = Entry(propertyRow)
-        merchantEntry['textvariable'] = self.property
-        droplist = OptionMenu(propertyRow, self.property, *properties)
-        droplist.config(width=15)
         self.property.set('Select')
+        self.otherPropLabel = None
+        self.otherProp = StringVar()
+        self.propOpen = False
+
+        def chooseOtherProperty(e=None):
+            if self.property.get() == 'Other' and not self.propOpen:
+                self.propertyLabel.destroy()
+                self.otherProp = Entry(propertyRow)
+                self.otherPropLabel = Label(propertyRow,text="Other Property", width=20,font=("bold",15))
+                self.otherPropLabel.pack(side = LEFT)
+                self.otherProp.pack(side = RIGHT, expand = YES, fill = X)
+                self.propOpen  = True
+            elif self.property.get() != 'Other' and self.propOpen:
+                self.otherProp.destroy()
+                self.otherProp = StringVar()
+                self.otherPropLabel.destroy()
+                self.propertyLabel = Label(propertyRow,text="Property", width=20,font=("bold",15))
+                self.propertyLabel.pack(side = LEFT)
+                self.propOpen  = False
+
+        propertyEntry = Entry(propertyRow)
+        propertyEntry['textvariable'] = self.property
+
+        propertyList = OptionMenu(propertyRow, self.property, *properties, command=chooseOtherProperty)
+        propertyList.config(width=15)
         propertyRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
-        propertyLabel.pack(side = LEFT)
-        droplist.pack(side = RIGHT, expand = YES, fill = X)
+        self.propertyLabel.pack(side = LEFT)
+        propertyList.pack(side = RIGHT, expand = YES, fill = X)
 
         itemsRow = Frame(self.window)
         if 'Items' in self.info['ConfidenceLow'] or not self.info['Items']:
@@ -303,7 +323,7 @@ class PopupWindow():
             self.info['MerchantName'] = 'Home Depot'
         self.info['Total'] = self.total.get()
         self.info['ExpenseType'] = self.expenseType.get() if self.other.get() == '' else self.other.get()
-        self.info['Property'] = self.property.get()
+        self.info['Property'] = self.property.get() if self.otherProp.get() == '' else self.otherProp.get()
         self.info['Items'] = self.items.get()
         errors = []
         for entry in self.info:
@@ -340,12 +360,15 @@ class PopupWindow():
             return False
         return True
     
-    def fileExistsAWS(self, s3, bucket, key):
+    def fileExistsAWS(self, s3, bucket, key, csv=None):
         try:
             s3.head_object(Bucket=bucket, Key=key)
         except ClientError as e:
-            logging.error(e)
-            print('file does not exist')
+            if csv == '.csv':
+                print('new folder created')
+            else:
+                logging.error(e)
+                print('file does not exist')
             return False
         print('upload successful')
         return True
@@ -389,10 +412,10 @@ class PopupWindow():
             return False
         if not self.fileExistsAWS(s3, bucket, key):
             return False
-        # os.remove(src_folder + file_name)
+        os.remove(src_folder + file_name)
 
         self.writeToFile(file, bucket, key)
-        if self.fileExistsAWS(s3, bucket, self.info['Property'] + '/' + self.info['Property'] + '.csv'):
+        if self.fileExistsAWS(s3, bucket, self.info['Property'] + '/' + self.info['Property'] + '.csv', '.csv'):
             if not self.deleteFileAWS(s3, bucket, self.info['Property'] + '/'):
                 return False
         if not self.uploadFileAWS(s3, bucket, self.info['Property'] + '/' + self.info['Property'] + '.csv', file):
