@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 class ParseReceipt:
 
     def __init__(self, imageFile):
-        self.info = {'TransactionDate' : '', 'MerchantName' : '', 'Total' : '', 'Property': '', 'ExpenseType': '', 'Items': '', 'ImageFile' : imageFile, 'ConfidenceLow' : []}
+        self.info = {'TransactionDate' : '', 'MerchantName' : '', 'Total' : '', 'Property': '', 'ExpenseType': '', 'Items': [], 'Payment Method' : '', 'ImageFile' : imageFile, 'ConfidenceLow' : []}
         self.imageFile = imageFile
         FORMRECOGNIZER_ENDPOINT = secret.getEndpoint()
         FORMRECOGNIZER_KEY = secret.getKey()
@@ -28,7 +28,9 @@ class ParseReceipt:
                         i = []
                         for idx, items in enumerate(field.value):
                             for item_name, item in items.value.items():
-                                i.append(item.value)
+                                iv = item.value
+                                niv = iv.replace(',', '')
+                                i.append(niv)
                                 break
                         self.info[name] = i
                         if field.confidence < 0.9:
@@ -67,18 +69,19 @@ class RootWindow:
 
         def scan():
             new_window.destroy()
-            allinfo = []
-            for filename in os.listdir('images'):
-                if filename != '.DS_Store':
-                    IMAGE_FILE = os.path.join('images', filename)
-                    NEW_IMAGE_FILE = IMAGE_FILE.replace(' ', '')
-                    os.rename(IMAGE_FILE, NEW_IMAGE_FILE)
-                    transaction = ParseReceipt(NEW_IMAGE_FILE)
-                    info = transaction.parse()
-                    if info:
-                        allinfo.append(info)
+            allinfo = [{'TransactionDate': '2022-12-28', 'MerchantName': 'MENARDS', 'Total': '682.76', 'Property': '', 'ExpenseType': '', 'Items': ["1X2-8' #2 QUALITY BOARD", 'BRITE WH 6PNL 30LH', '1/2 × 2×4 OSB NOM.', 'CRFT CASE WM473 BWHTWD', 'RNCH BASE LWM724 GLDOAK', 'BRITE WH 6PNL 30RH', '6\'9" METAL 1-1/4\'', '"BEDDAR WOOD SHIMS -12P', 'SC PRIVACY TULIP KNOB', 'EZ HANG DOOR HANGER'], 'Payment Method': '', 'ImageFile': 'images/menards.jpg', 'ConfidenceLow': ['MerchantName']}, {'TransactionDate': '2019-06-10', 'MerchantName': 'Contoso', 'Total': '1203.39', 'Property': '', 'ExpenseType': '', 'Items': ['Surface Pro 6', 'SurfacePen'], 'Payment Method': '', 'ImageFile': 'images/sample-receipt.png', 'ConfidenceLow': []}]
+            # allinfo = []
+            # for filename in os.listdir('images'):
+            #     if filename != '.DS_Store':
+            #         IMAGE_FILE = os.path.join('images', filename)
+            #         NEW_IMAGE_FILE = IMAGE_FILE.replace(' ', '')
+            #         os.rename(IMAGE_FILE, NEW_IMAGE_FILE)
+            #         transaction = ParseReceipt(NEW_IMAGE_FILE)
+            #         info = transaction.parse()
+            #         if info:
+            #             allinfo.append(info)
+            # print(allinfo)
             print('scan finished')
-            print(allinfo)
             for i in allinfo:
                 self.create(i)
             self.window.destroy()
@@ -299,13 +302,59 @@ class PopupWindow():
         self.propertyLabel.pack(side = LEFT)
         propertyList.pack(side = RIGHT, expand = YES, fill = X)
 
+        paymentRow = Frame(self.window)
+        payments = secret.getPaymentMethods()
+        self.paymentLabel = Label(paymentRow,text="Payment Method", width=20,font=("bold",15))
+        self.payment = StringVar()
+        self.payment.set('Select')
+        self.otherPaymentLabel = None
+        self.otherPayment = StringVar()
+        self.payOpen = False
+
+        def chooseOtherPayment(e=None):
+            if self.payment.get() == 'Other' and not self.payOpen:
+                self.paymentLabel.destroy()
+                self.otherPayment = Entry(paymentRow)
+                self.otherPaymentLabel = Label(paymentRow,text="Other Payment Method", width=20,font=("bold",15))
+                self.otherPaymentLabel.pack(side = LEFT)
+                self.otherPayment.pack(side = RIGHT, expand = YES, fill = X)
+                self.payOpen  = True
+            elif self.payment.get() == 'Check' and not self.payOpen:
+                self.paymentLabel.destroy()
+                self.otherPayment = Entry(paymentRow)
+                self.otherPaymentLabel = Label(paymentRow,text="Check Number", width=20,font=("bold",15))
+                self.otherPaymentLabel.pack(side = LEFT)
+                self.otherPayment.pack(side = RIGHT, expand = YES, fill = X)
+                self.payOpen  = True
+            elif self.payment.get() != 'Other' and self.payment.get() != 'Check' and self.propOpen:
+                self.otherPayment.destroy()
+                self.otherPayment = StringVar()
+                self.otherPaymentLabel.destroy()
+                self.paymentLabel = Label(paymentRow,text="Payment Method", width=20,font=("bold",15))
+                self.paymentLabel.pack(side = LEFT)
+                self.payOpen  = False
+
+        paymentEntry = Entry(paymentRow)
+        paymentEntry['textvariable'] = self.payment
+
+        paymentList = OptionMenu(paymentRow, self.payment, *payments, command=chooseOtherPayment)
+        paymentList.config(width=15)
+        paymentRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+        self.paymentLabel.pack(side = LEFT)
+        paymentList.pack(side = RIGHT, expand = YES, fill = X)
+
         itemsRow = Frame(self.window)
         if 'Items' in self.info['ConfidenceLow'] or not self.info['Items']:
             itemsLabel = Label(itemsRow,text="Items", width=20,fg='#f00',font=("bold",15))
         else:
             itemsLabel = Label(itemsRow,text="Items", width=20,font=("bold",15))
         self.items = Entry(itemsRow)
-        self.items.insert(0, self.info['Items'])
+        str_items = ""
+        for i in range(len(self.info['Items'])):
+            str_items += self.info['Items'][i]
+            if i < len(self.info['Items']) - 1:
+                str_items += ' | '
+        self.items.insert(0, str_items)
         itemsRow.pack(side = TOP, fill = X, padx = 5 , pady = 5)
         itemsLabel.pack(side = LEFT)
         self.items.pack(side = RIGHT, expand = YES, fill = X)
@@ -325,6 +374,10 @@ class PopupWindow():
         self.info['ExpenseType'] = self.expenseType.get() if self.other.get() == '' else self.other.get()
         self.info['Property'] = self.property.get() if self.otherProp.get() == '' else self.otherProp.get()
         self.info['Items'] = self.items.get()
+        if self.payment.get() == 'Check':
+            self.info['Payment Method'] = 'Check ' + self.otherPayment.get()
+        else:
+            self.info['Payment Method'] = self.payment.get() if self.otherPayment.get() == '' else self.otherPayment.get()
         errors = []
         for entry in self.info:
             if self.info[entry] in ['', 'Select', '0', 'YEAR-MONTH-DATE']:
@@ -370,15 +423,15 @@ class PopupWindow():
                 logging.error(e)
                 print('file does not exist')
             return False
-        print('upload successful')
+        print('picture upload successful') if csv == None else print('csv upload successful')
         return True
 
     def writeToFile(self, file, bucket, key):
         if not os.path.exists(file):
             with open(file, 'a') as f:
-                header = 'Transation Date, Merchant Name, Total, Expense Type, Items, AWS Key\n'
+                header = "Transation Date,Total,Items,Expense Type,Merchant Name,Payment Method,AWS Key\n"
                 f.write(header)
-                s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + ',' + self.info['Items'] + ',' + key + '\n'
+                s = self.info['TransactionDate'] + ',' + self.info['Total'] + ',' + self.info['Items'] + ',' + self.info['ExpenseType'] + ',' + self.info['MerchantName'] + ','  + self.info['Payment Method'] + ',' + key + '\n'
                 f.write(s)
         else:
             addNewLine = False
@@ -393,7 +446,7 @@ class PopupWindow():
                 if last_line[-1] != '\n':
                     addNewLine = True
             with open(file, 'a') as f:
-                s = self.info['TransactionDate'] + ',' + self.info['MerchantName'] + ',' + self.info['Total'] + ',' + self.info['ExpenseType'] + ',' + self.info['Items'] + ',' + key + '\n'
+                s = self.info['TransactionDate'] + ',' + self.info['Total'] + ',' + self.info['Items'] + ',' + self.info['ExpenseType'] + ',' + self.info['MerchantName'] + ','  + self.info['Payment Method'] + ',' + key + '\n'
                 if addNewLine:
                     s = '\n' + s
                 f.write(s)
